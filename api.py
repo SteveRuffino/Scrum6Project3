@@ -25,7 +25,25 @@ while True:
 chart_type = "bar" if chart_type == "1" else "line"
 print("")
 print("\x1b[6;30;45m" + "Time series functions" + "\x1b[0m")
-time_series_function = input()
+print("1. Intraday")
+print("2. Daily")
+print("3. Weekly")
+print("4. Monthly")
+while True:
+    print("\x1b[6;30;45m" + "Enter the time series function: " + "\x1b[0m")
+    time_series_function = input()
+    if time_series_function == "1" or time_series_function == "2" or time_series_function == "3" or time_series_function == "4":
+        break
+    else:
+        print("Invalid time series function. Please try again.")
+if time_series_function == "1":
+    time_series_function = "TIME_SERIES_INTRADAY"
+elif time_series_function == "2":
+    time_series_function = "TIME_SERIES_DAILY"
+elif time_series_function == "3":
+    time_series_function = "TIME_SERIES_WEEKLY"
+else:
+    time_series_function = "TIME_SERIES_MONTHLY"
 print("")
 print("\x1b[6;30;45m" + "Enter the beginning date (YYYY-MM-DD)" + "\x1b[0m")
 begin_date = input()
@@ -41,9 +59,8 @@ while True:
         end_date = input("Enter the end date (YYYY-MM-DD): ")
     else:
         break
-
 # Using inputs, creates the link w/ the API
-url = f"https://www.alphavantage.co/query?function={time_series_function}&symbol={stock_symbol}&interval={chart_type}&apikey=TKD85DJRC6KNT94C"
+url = f"https://www.alphavantage.co/query?function={time_series_function}&symbol={stock_symbol}&interval=5min&apikey=TKD85DJRC6KNT94C"
 r = requests.get(url)
 data = r.json()
 
