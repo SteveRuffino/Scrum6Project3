@@ -1,8 +1,9 @@
 import requests
+import plotly.graph_objs as go
+import plotly.offline as pyo
 import webbrowser
 import os
-from lxml import etree
-import pygal
+import datetime
 
 def get_user_input():
     print("\x1b[6;30;45m" + "Enter the stock symbol" + "\x1b[0m")
@@ -72,36 +73,46 @@ def input_date(prompt=""):
 def fetch_stock_data(stock_symbol, time_series_function):
     url = f"https://www.alphavantage.co/query?function={time_series_function}&symbol={stock_symbol}&interval=5min&apikey=TKD85DJRC6KNT94C"
     r = requests.get(url)
-    return r.content
+    return r.json()
 
-def filter_data_by_date(xml_content, begin_date, end_date):
-    root = etree.fromstring(xml_content)
-    timeseries = root.find('.//TIME_SERIES_INTRADAY')
+def filter_data_by_date(timeseries, begin_date, end_date):
     filtered_dates = []
     filtered_values = []
-    for child in timeseries:
-        date = child.attrib['datetime']
+    for date, value in timeseries.items():
         if begin_date <= date <= end_date:
             filtered_dates.append(date)
-            filtered_values.append(float(child.find('.//close').text))
+            filtered_values.append(float(value['4. close']))
     return filtered_dates, filtered_values
 
 def generate_and_show_chart(stock_symbol, chart_type, filtered_dates, filtered_values, begin_date, end_date):
-    chart_title = f'Stock Prices for {stock_symbol} from {begin_date} to {end_date}'
     if chart_type == 'line':
-        chart = pygal.Line(title=chart_title, x_label_rotation=45)
+        trace = go.Scatter(x=filtered_dates, y=filtered_values, mode='lines')
     else:
-        chart = pygal.Bar(title=chart_title, x_label_rotation=45)
+        trace = go.Bar(x=filtered_dates, y=filtered_values)
 
-    chart.x_labels = filtered_dates
-    chart.add('Close Price', filtered_values)
-    chart.render_to_file('stock_chart.svg')
-    webbrowser.open('file://' + os.path.abspath('stock_chart.svg'))
+    data = [trace]
+    layout = go.Layout(title=f'Stock Prices for {stock_symbol} from {begin_date} to {end_date}')
+    fig = go.Figure(data=data, layout=layout)
+
+    file_name = 'stock_chart.html'
+    file_path = os.path.join(os.getcwd(), file_name)
+    pyo.plot(fig, filename=file_path, auto_open=False)
+
+    if not webbrowser.open('file://' + file_path):
+        try:
+            webbrowser.open_new('file://' + file_path)
+        except:
+            try:
+                webbrowser.open_new_tab('file://' + file_path)
+            except Exception as e:
+                print(f"Failed to open the browser: {e}")
 
 def main():
     stock_symbol, chart_type, time_series_function, begin_date, end_date = get_user_input()
-    xml_content = fetch_stock_data(stock_symbol, time_series_function)
-    filtered_dates, filtered_values = filter_data_by_date(xml_content, begin_date, end_date)
+    data = fetch_stock_data(stock_symbol, time_series_function)
+    timeseries_key = list(data.keys())[1]
+    timeseries = data[timeseries_key]
+    filtered_dates, filtered_values = filter_data_by_date(timeseries, begin_date, end_date)
     generate_and_show_chart(stock_symbol, chart_type, filtered_dates, filtered_values, begin_date, end_date)
 
 if __name__ == "__main__":
